@@ -24,12 +24,24 @@ app.post('/create', async (req, res) => {
             firstName : req.body.firstName,
             lastName : req.body.lastName
         }
-        const response = db.collection("users").doc(userJson.email).set(userJson);
+        const response = await db.collection("users").doc(userJson.email).set(userJson);
         res.send(response);
     }
     catch (error){
         res.send(error);
 
+    }
+})
+
+
+app.delete('/delete', async (req, res) => {
+    try {
+        console.log(req.body);
+        const response = await db.collection("users").doc(req.body.email).delete();
+        res.send(response);
+    }
+    catch (error){
+        res.send(error);
     }
 })
 
