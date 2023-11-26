@@ -1,12 +1,15 @@
 const express = require("express");
+const {getStorage, ref, uploadBytesResumable} = require("firebase/storage");
 const app = express();
+const  uploadRouter = require("./middleware/multer");
 
 const admin =  require("firebase-admin");
 const credentials = require("./key.json");
 
 
 admin.initializeApp({
-    credential: admin.credential.cert(credentials)
+    credential: admin.credential.cert(credentials),
+    storageBucket : "gs://firestorecrud-5c0ee.appspot.com"
 })
 
 const db = admin.firestore();
@@ -14,6 +17,22 @@ const db = admin.firestore();
 app.use(express.json());
 
 app.use(express.urlencoded({extended: true}));
+
+
+
+const uploadFile = async (file, quantity) => {
+    const storageFB = getStorage();
+
+    const dateTime = Date.now();
+    const fileName = `images/${dateTime}`;
+    const storageRef = ref(storageFB, fileName);
+    const metadata = {
+        contentType : file.type,
+    }
+    await uploadBytesResumable(storageRef, file.buffer, metadata);
+    return fileName;
+};
+
 
 
 app.post('/create', async (req, res) => {
@@ -33,6 +52,34 @@ app.post('/create', async (req, res) => {
     }
 })
 
+app.get('/model', async (req, res) => {
+    try {
+        var bucket = admin.storage().bucket();
+        const fileName = 'files/sample.json';
+    
+        const options = {
+            destination : "./model.json",
+        };
+        const result = await bucket.file(fileName).download(options);
+        console.log('result: ' + result);
+        
+    }
+    catch (err){
+        console.log(err);
+    }
+})
+
+app.get('/read', async (req, res) => {
+    try {
+        const readJson = await db.collection("users").doc(req.body.email).get();
+        //console.log(readJson.body.firstName);
+        res.send(readJson);
+        console.log(readJson.body.lastName);
+    }
+    catch (error){
+        res.send(error);
+    }
+})
 
 app.delete('/delete', async (req, res) => {
     try {
@@ -44,6 +91,8 @@ app.delete('/delete', async (req, res) => {
         res.send(error);
     }
 })
+
+app.use("/upload", uploadRouter );
 
 const PORT  = process.env.PORT || 8080;
 
